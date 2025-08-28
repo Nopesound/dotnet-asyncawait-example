@@ -1,2 +1,2 @@
-# training-dotnet-asyncawait
-A simple project for training purpose
+# dotnet-asyncawait-example
+A simple project for explain purpose, go to article on blog ->
