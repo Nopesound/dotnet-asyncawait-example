@@ -4,36 +4,45 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        try
+        {
+            using var client = new HttpClient();
+            //Warm up
+            var warm = client.GetStringAsync("https://jsonplaceholder.typicode.com/posts/1", cts.Token).Result;
 
-        using var client = new HttpClient();
-        //Warm up 
-        var warm = client.GetStringAsync("https://jsonplaceholder.typicode.com/posts/1").Result;
-        Stopwatch stopwatchAsync = new Stopwatch();
-        stopwatchAsync.Start();
-        await GetDataAsync(client);
-        stopwatchAsync.Stop();
-        var asyncTime = stopwatchAsync.ElapsedMilliseconds;
+            var syncCount = 0;
+            long syncTime = 0;
+            while (syncCount <= 50)
+            {
+                Stopwatch stopwatchSync = new Stopwatch();
+                stopwatchSync.Start();
+                GetDataSync(client);
+                stopwatchSync.Stop();
+                syncTime = +stopwatchSync.ElapsedMilliseconds;
+                syncCount++;
+            }
 
-        Stopwatch stopwatchSync = new Stopwatch();
-        stopwatchSync.Start();
-        GetDataSync(client);
-        stopwatchSync.Stop();
-        var syncTime = stopwatchSync.ElapsedMilliseconds;
-        Console.WriteLine($"Esecuzione conclusa async {asyncTime}, sync {syncTime}");
+            Stopwatch stopwatchAsync = new Stopwatch();
+            var asyncCount = 0;
+            long asyncTime = 0;
+            while (asyncCount <= 50)
+            {
+                stopwatchAsync.Start();
+                await GetDataAsync(client);
+                stopwatchAsync.Stop();
+                asyncTime = +stopwatchAsync.ElapsedMilliseconds;
+                asyncCount++;
+            }
 
-
-
-        stopwatchSync.Restart();
-        GetDataSync(client);
-        stopwatchSync.Stop();
-        var syncTime2 = stopwatchSync.ElapsedMilliseconds;
-
-        stopwatchAsync.Restart();
-        await GetDataAsync(client);
-        stopwatchAsync.Stop();
-        var asyncTime2 = stopwatchAsync.ElapsedMilliseconds;
-
-        Console.WriteLine($"Esecuzione conclusa async {asyncTime2}, sync {syncTime2}");
+            Console.WriteLine($"Esecuzione conclusa tempi medi: async {asyncTime / 50}, sync {syncTime / 50}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Errore in esecuzione {ex.Message}");
+            cts.Cancel();
+            throw;
+        }
     }
 
     // Versione sincrona
